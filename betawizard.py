@@ -1,13 +1,13 @@
-import random
-import json
 import pyperclip
 import tkinter as tk
-
+#add the asr famliy with with cdp enables and isr cdp
+#Webex bot to ping engineers when their devices are going to exprire
+#ASR family currently tested on ASR 920 and 1002
 #Device Commands
-IOS_XE_commands = "\nip ftp source-interface g0/0 \nip tftp source-interface g0/0 \nno ip domain lookup \nline vty 0 15 \nlogging sync \nexit \nint g0/0   \nip add dhcp  \nno shut \nip route vrf Mgmt-vrf 0.0.0.0 0.0.0.0 " 
+IOS_XE_commands = "\nip ftp source-interface g0/0 \nip tftp source-interface g0/0 \nno ip domain lookup \nline con 0 \nlogging sync \nexit \nint g0/0   \nip add dhcp  \nno shut \nip route vrf Mgmt-vrf 0.0.0.0 0.0.0.0 " 
 Nexus_commands = '\nip ftp source-interface mgmt0 \nip tftp source-interface mgmt0  \nint mgmt0   \nip add dhcp  \nno shut  \nvrf member management \nvrf context management \nip route 0.0.0.0 0.0.0.0 '
-Non_VRF_BB = '\nip ftp source-interface gi0/1 \nip tftp source-interface gi0/1 \nno ip domain lookup \nline vty 0 15 \nlogging sync \nexit \nint vlan 1 \nip add dhcp \nno shut \nint g0/1 \nno shut \nsw \nsw mode access \nsw access vlan 1 \nexit \nip route 0.0.0.0 0.0.0.0 '
-ISR_commands = "\nip ftp source-interface g0 \nip tftp source-interface g0 \nno ip domain lookup \nline vty 0 15 \nlogging sync \nexit \nint g0   \nip add dhcp  \nno shut \nip route vrf Mgmt-intf 0.0.0.0 0.0.0.0 " 
+Non_VRF_BB = '\nip ftp source-interface gi0/1 \nip tftp source-interface gi0/1 \nno ip domain lookup \nline con 0 \nlogging sync \nexit \nint vlan 1 \nip add dhcp \nno shut \nint g0/1 \nno shut \nsw \nsw mode access \nsw access vlan 1 \nexit \nip route 0.0.0.0 0.0.0.0 '
+ISRandASRnonXR = "\nip ftp source-interface g0 \nip tftp source-interface g0 \nno ip domain lookup \nline con 0 \nlogging sync \nexit \nint g0   \nip add dhcp  \nno shut \nip route vrf Mgmt-intf 0.0.0.0 0.0.0.0 " 
 
 def Wizard(family, row, hostname):
     output = ''
@@ -21,11 +21,12 @@ def Wizard(family, row, hostname):
     elif family == 'NonVRFBB':
         output += 'conf t \nhostname ' + hostname + Non_VRF_BB
 
-    elif family == 'ISR':
-        output += 'conf t \nhostname ' + hostname + ISR_commands
+    elif family == 'ISR/ASRnonXR':
+        output += 'conf t \nhostname ' + hostname + ISRandASRnonXR
 
     else:
         output += "Input a correct device family you weezo."
+        
     
     
     #Row Gateway Calulations
@@ -110,7 +111,7 @@ family_var.set('IOS_XE')  # Set the default value
 # Create a drop-down menu for device family
 family_label = tk.Label(window, text='Device Family:')
 family_label.pack()
-family_dropdown = tk.OptionMenu(window, family_var, 'IOS_XE', 'Nexus9K/3K', 'NonVRFBB', 'ISR')
+family_dropdown = tk.OptionMenu(window, family_var, 'IOS_XE', 'Nexus9K/3K', 'NonVRFBB', 'ISR/ASRnonXR')
 family_dropdown.pack()
 
 # Create an entry field for hostname
@@ -130,8 +131,10 @@ row_dropdown = tk.OptionMenu(window, row_var, '1A', '1B', '2A', '2B', '3A', '3B'
 row_dropdown.pack()
 
 # Create a button to trigger the Wizard function
-button = tk.Button(window, text='Run Wizard', command=handle_button_click)
+button = tk.Button(window, text='Call The Wizard', command=handle_button_click)
 button.pack()
 
 # Start the Tkinter event loop
 window.mainloop()
+
+
