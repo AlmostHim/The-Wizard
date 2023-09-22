@@ -3,6 +3,8 @@ import tkinter as tk
 from tkinter import messagebox
 import subprocess
 import os
+import random
+
 
 #Made by Andrew M. btw :3
 #Webex bot to ping engineers when their devices are going to expire
@@ -91,27 +93,43 @@ IPs = {
     '26A': '10.122.177.',
 }
 
+# Define a set to store tested IP addresses
+tested_ips = set()
+
 def IP_pinger_A(row):
     if row in IPs:
         with open(os.devnull, "wb") as limbo:
-            for n in range(30, 126):
-                ip = IPs[row] + str(n)
+            for _ in range(30, 126):
+                while True:
+                    n = random.randint(30, 125)
+                    ip = IPs[row] + str(n)
+                    if ip not in tested_ips:  # Check if the IP has not been tested already
+                        break  # Break the loop if it's a new IP
+                tested_ips.add(ip)  # Add the IP to the set of tested IPs
                 result = subprocess.Popen(["ping", "-c", "1", "-n", "-W", "2", ip],
                                           stdout=limbo, stderr=limbo).wait()
                 if result:
                     inactive_ip = ip
                     return inactive_ip
-    
+
 def IP_pinger_B(row):
     if row in IPs:
         with open(os.devnull, "wb") as limbo:
-            for n in range(145, 254):
-                ip = IPs[row] + str(n)
+            for _ in range(145, 254):
+                while True:
+                    n = random.randint(145, 253)
+                    ip = IPs[row] + str(n)
+                    if ip not in tested_ips:
+                        break
+                tested_ips.add(ip)
                 result = subprocess.Popen(["ping", "-c", "1", "-n", "-W", "2", ip],
                                           stdout=limbo, stderr=limbo).wait()
                 if result:
                     inactive_ip =  ip
                     return inactive_ip
+            
+
+
 
 def Wizard(family, row, hostname, filename , interface_name=" " ,  use_dhcp=False):
     output = ''
@@ -124,10 +142,10 @@ def Wizard(family, row, hostname, filename , interface_name=" " ,  use_dhcp=Fals
         
     else:
     #...Decides to call either the A or B pinger function depending on the row.
-     if row in ('1A', '2A', '3A', '4A', '5A', '6A', '7A', '8A', '9A', '10A', '11A', '12A',  '13A', '14A', '15A', '16A', '21A', '22A', '23A', '24A', '25A', '26A'):
+     if row in ('1A', '2A', '3A', '4A', '5A', '6A', '7A', '8A', '9A', '10A', '11A', '12A',  '13A', '14A', '15A', '16A', '21A', '22A', '25A', '26A'):
         inactive_ip = IP_pinger_A(row)
 
-     if row in ('1B', '2B', '3B', '4B', '5B', '6B', '7B', '8B', '9B', '10B', '11B', '12B', '13B', '14B', '15B', '16B'):
+     if row in ('1B', '2B', '3B', '4B', '5B', '6B', '7B', '8B', '9B', '10B', '11B', '12B', '13B', '14B', '15B', '16B' , '23A', '24A'):
         inactive_ip = IP_pinger_B(row)
 
     #..Device Command Determination
@@ -138,13 +156,13 @@ def Wizard(family, row, hostname, filename , interface_name=" " ,  use_dhcp=Fals
         output += f'conf t \nhostname {hostname} \nip ftp source-interface mgmt0 \nip tftp source-interface mgmt0  \nint mgmt0 \nno shut \nno ip add \nip add {inactive_ip} 255.255.255.128 \nvrf member management \nvrf context management \nip route 0.0.0.0 0.0.0.0 {gateway} \ncopy run start \nping 10.122.153.158 vrf management'
 
     elif family == 'Data Port Vlan BB':
-        output += f'conf t \nhostname {hostname} \nip ftp source-interface {interface_name} \nip tftp source-interface {interface_name} \nno ip domain lookup \nline con 0 \nlogging sync \nexit \nint vlan 1 \nip add {inactive_ip} 255.255.255.128 \nno shut \nint {interface_name} \nno shut \nsw \nsw mode access \nsw access vlan 1 \nexit \nip route 0.0.0.0 0.0.0.0 {gateway} \nend \ncopy run start \nping 10.122.153.158'
+        output += f'conf t \nhostname {hostname} \nip ftp source-interface {interface_name} \nip tftp source-interface {interface_name} \nno ip domain lookup \nline con 0 \nlogging sync \nexit \nint vlan 1 \nip add {inactive_ip} 255.255.255.128 \nno shut \nint {interface_name} \nno shut \nsw \nsw mode access \nsw access vlan 1 \nexit \nip route 0.0.0.0 0.0.0.0 {gateway} \nend \nwr \nping 10.122.153.158'
 
     elif family == 'ISR/ASR':
-        output += f'conf t \nhostname {hostname} \nip ftp source-interface g0 \nip tftp source-interface g0 \ncdp run \nno ip domain lookup \nline con 0 \nlogging sync \nexit \nint g0 \nno shut \nip add {inactive_ip} 255.255.255.128 \nexit \nip route vrf Mgmt-intf 0.0.0.0 0.0.0.0 {gateway} \nend \ncopy run start \nping vrf Mgmt-intf 10.122.153.158' 
+        output += f'conf t \nhostname {hostname} \nip ftp source-interface g0 \nip tftp source-interface g0 \ncdp run \nno ip domain lookup \nline con 0 \nlogging sync \nexit \nint g0 \nno shut \nip add {inactive_ip} 255.255.255.128 \nexit \nip route vrf Mgmt-intf 0.0.0.0 0.0.0.0 {gateway} \nend \nwr \nping vrf Mgmt-intf 10.122.153.158' 
 
     elif family == 'Switch Global Route (No VRF)':
-        output += f"conf t\nhostname {hostname}\nip ftp source-interface g0/0\nip tftp source-interface g0/0\nno ip domain lookup\nline con 0\nlogging sync\nexit\nint g0/0\nno shut\nno ip add \nip add {inactive_ip} 255.255.255.128 \nexit \nip route 0.0.0.0 0.0.0.0 {gateway}\nend\ncopy run start\nping 10.122.153.158"
+        output += f"conf t\nhostname {hostname}\nip ftp source-interface g0/0\nip tftp source-interface g0/0\nno ip domain lookup\nline con 0\nlogging sync\nexit\nint g0/0\nno shut\nno ip add \nip add {inactive_ip} 255.255.255.128 \nexit \nip route 0.0.0.0 0.0.0.0 {gateway}\nend\nwr \nping 10.122.153.158"
 
     elif family == 'Nexus 9/3k Loader TFTP Boot':
         output += f"set ip {inactive_ip} \nset gw {gateway} \nboot tftp://10.122.153.158/{filename}"
@@ -171,9 +189,13 @@ def handle_button_click():
     if family not in ["Nexus 9/3k Loader TFTP Boot" , "IOS-XE TFTP Rommon Boot"] and not hostname:  # Check hostname if family is not "Nexus 9/3k Loader TFTP Boot"
         messagebox.showerror('Error' , 'Enter a hostname you weezo.')
         return
+    
+    if family in ["Nexus 9/3k Loader TFTP Boot" , "IOS-XE TFTP Rommon Boot"] and not filename: #If the family is one of the rommon ones it checks for the filename.
+        messagebox.showerror('Error' , 'Enter a filename you weezo.')
+        return
 
     if not row:
-        messagebox.showerror('Error' , 'Enter a row you weezo.')
+        messagebox.showerror('Error' , 'Enter a row you weezo.') #Checks for the row being empty
         return
     
     Wizard(family, row, hostname, filename , interface_name , use_dhcp)
@@ -181,11 +203,13 @@ def handle_button_click():
 
 # Create the Tkinter window
 window = tk.Tk()
-window.geometry("340x250")
+window.geometry("340x270")
+
 
 # Create a variable to store the selected device family
 family_var = tk.StringVar(window)
 
+window.title('The Configuration Conjurer')
 
 # Create a drop-down menu for device family
 family_label = tk.Label(window, text='Device Family:')
@@ -226,6 +250,7 @@ dhcp_checkbox = tk.Checkbutton(window, text= 'DHCP (Check if you keep getting du
 # Create a button to trigger the Wizard function
 button = tk.Button(window, text='Call The Wizard', command=handle_button_click)
 
+
 # Logic for choosing which fields pop up for which family
 def IOS_XE_Dynamic(*args):
     selected_family = family_var.get()
@@ -234,10 +259,13 @@ def IOS_XE_Dynamic(*args):
         hostname_entry.pack_forget()
         interface_label.pack_forget()
         interface_entry.pack_forget()
+        filename_label.pack_forget()
+        filename_entry.pack_forget()
         dhcp_checkbox.pack_forget()
         row_label.pack_forget()
         row_dropdown.pack_forget()
         button.pack_forget()
+        name_label.pack_forget()
 
         hostname_label.pack()
         hostname_entry.pack()
@@ -245,16 +273,20 @@ def IOS_XE_Dynamic(*args):
         row_label.pack()
         row_dropdown.pack()
         button.pack()
+        name_label.pack()
 
     if selected_family == 'Data Port Vlan BB':
         hostname_label.pack_forget()
         hostname_entry.pack_forget()
         interface_label.pack_forget()
         interface_entry.pack_forget()
+        filename_label.pack_forget()
+        filename_entry.pack_forget()
         dhcp_checkbox.pack_forget()
         row_label.pack_forget()
         row_dropdown.pack_forget()
         button.pack_forget()
+        name_label.pack_forget()
 
         hostname_label.pack()
         hostname_entry.pack()
@@ -264,6 +296,7 @@ def IOS_XE_Dynamic(*args):
         row_label.pack()
         row_dropdown.pack()
         button.pack()
+        name_label.pack()
 
     if selected_family in ["IOS-XE TFTP Rommon Boot" , 'Nexus 9/3k Loader TFTP Boot']:
         hostname_label.pack_forget()
@@ -273,21 +306,25 @@ def IOS_XE_Dynamic(*args):
         dhcp_checkbox.pack_forget()
         row_label.pack_forget()
         row_dropdown.pack_forget()
-        button.pack_forget()    
+        button.pack_forget() 
+        name_label.pack_forget()   
 
         filename_label.pack()
         filename_entry.pack()
         row_label.pack()
         row_dropdown.pack()
         button.pack()
+        name_label.pack()
 
 
 # Bind the toggle functions to the family_var variable
 family_var.trace_add('write', IOS_XE_Dynamic)
 
+name_label = tk.Label(window, text='\u00A9 Andrew M. :3')
+
+
 # Start the Tkinter event loop
 window.mainloop()
-
 
 
 
